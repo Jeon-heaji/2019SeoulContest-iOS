@@ -10,14 +10,14 @@ import UIKit
 
 class SettingViewController: UIViewController {
   
-  private let tableView = UITableView()
+  let tableView = UITableView()
   
-  var requestIncidentDatas: [IncidentData] = []
+  let userShared = UserInfoManager.shared
   
   private let inDocument = ["의뢰", "도움", "공지사항", "이용약관", "내 정보"]
   private let outDocument = ["공지사항", "이용약관"]
   
-  private var isSign = true
+  var isSign = true
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -27,9 +27,23 @@ class SettingViewController: UIViewController {
   }
   
   override func viewWillAppear(_ animated: Bool) {
-    super.viewWillAppear(true)
+    super.viewWillAppear(animated)
     
     navigationController?.navigationBar.isHidden = true
+    
+    if let _ = UserDefaults.standard.object(forKey: "Token") as? String {
+      isSign = true
+      tableView.reloadData()
+    } else {
+      isSign = false
+      tableView.reloadData()
+    }
+  }
+  
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    
+    
   }
   
   private func configure() {
@@ -69,8 +83,11 @@ extension SettingViewController: UITableViewDataSource {
       switch indexPath.row {
       case 0:
         let cell = SettingProfileCell()
+        let nickname = userShared.userInfo?.username ?? ""
+        let creditPoint = userShared.userInfo?.mannerScore ?? 0
+        let point = userShared.userInfo?.citizenScore ?? 0
         
-        cell.setting(imageName: "leaf", nickName: "Up's", creditPoint: 1200, point: 200)
+        cell.setting(imageName: "level0", nickName: nickname, creditPoint: creditPoint, point: point)
         
         return cell
         
@@ -81,7 +98,7 @@ extension SettingViewController: UITableViewDataSource {
         
         if indexPath.row == 1 {
           cell.countLabel.isHidden = false
-          cell.countLabel.text = "\(requestIncidentDatas.count)"
+          cell.countLabel.text = "\(userShared.userInfo?.requestCount ?? 0)"
         }
         
         return cell
@@ -104,7 +121,7 @@ extension SettingViewController: UITableViewDataSource {
       case 0:
         let cell = SettingProfileCell()
         
-        cell.setting(imageName: "leaf", nickName: "-", creditPoint: 0, point: 0)
+        cell.setting(imageName: "mainimage", nickName: "-", creditPoint: 0, point: 0)
         
         return cell
         
@@ -141,20 +158,28 @@ extension SettingViewController: UITableViewDelegate {
         break
         
       case 1:
-        let vcSettingRequest = SettingRequestViewController()
-        vcSettingRequest.requestIncidentDatas = requestIncidentDatas
-        navigationController?.pushViewController(vcSettingRequest, animated: true)
-        
+        // 의뢰
+        NetworkService.getSettingRequestData { [weak self] result in
+          switch result {
+          case .success(let data):
+            let vcSettingRequest = SettingRequestViewController()
+            vcSettingRequest.requestIncidentDatas = data
+            self?.navigationController?.pushViewController(vcSettingRequest, animated: true)
+          case .failure(let err):
+            print(err.localizedDescription)
+          }
+        }
       case 2...inDocument.count:
         print(indexPath.row)
         
       default:
+        UserDefaults.standard.removeObject(forKey: "Token")
+        UserDefaults.standard.removeObject(forKey: "userID")
         isSign = false
         tableView.reloadData()
       }
       
     case false:
-      
       switch indexPath.row {
       case 0:
         break
@@ -163,8 +188,9 @@ extension SettingViewController: UITableViewDelegate {
         print(indexPath.row)
         
       default:
-        isSign = true
-        tableView.reloadData()
+        // 로그인버튼
+        let navigationController = UINavigationController(rootViewController: LoginVC())
+        self.present(navigationController, animated: true)
       }
     }
   }

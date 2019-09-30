@@ -18,7 +18,8 @@ class MainTabBarController: UITabBarController {
   private let settingVC = SettingViewController()
   lazy private var vcSetting = UINavigationController(rootViewController: settingVC)
   
-  private var isPosition = true
+  private var isPosition = true // 메인 맵뷰 리스트뷰로 변경
+  private var isOther = true    // 다른 탭에 넘어 갔다왓을때는 기존의 메인뷰 보여주기위함
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -29,6 +30,7 @@ class MainTabBarController: UITabBarController {
   }
   
   private func configure() {
+    self.view.backgroundColor = #colorLiteral(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
     self.tabBar.isHidden = true
     
     MainTabBarController.vTabBarButton.pointButton.addTarget(self, action: #selector(pointDidTap(_:)), for: .touchUpInside)
@@ -40,36 +42,50 @@ class MainTabBarController: UITabBarController {
     
   }
   
+  private func alertAction(tilte: String?, message: String?) {
+    let alert = UIAlertController(title: tilte, message: message, preferredStyle: .actionSheet)
+    let login = UIAlertAction(title: "로그인", style: .default) { (action) in
+      let loginVC = UINavigationController(rootViewController: LoginVC())
+      
+      self.present(loginVC, animated: true)
+    }
+    let cancel = UIAlertAction(title: "취소", style: .cancel) { (action) in
+      
+    }
+    alert.addAction(login)
+    alert.addAction(cancel)
+    present(alert, animated: true)
+  }
+  
   @objc private func pointDidTap(_ sender: UIButton) {
+    isOther = false
+    
+    guard let _ = UserDefaults.standard.object(forKey: "Token") as? String else {
+      alertAction(tilte: "알림", message: "로그인이 필요한 서비스입니다")
+      return
+    }
+    
     self.selectedViewController = vcPoint
   }
   
   @objc private func mapListDidTap(_ sender: UIButton) {
-    isPosition.toggle()
-    
     switch isPosition {
     case true:
       MainTabBarController.vTabBarButton.mapListButton.setImage(UIImage(named: "TabBarList"), for: .normal)
-      self.selectedViewController = vcMap
+      self.selectedViewController = vcList
       
     case false:
       MainTabBarController.vTabBarButton.mapListButton.setImage(UIImage(named: "TabBarMap"), for: .normal)
-      self.selectedViewController = vcList
+      self.selectedViewController = vcMap
     }
+    
+    guard isOther else { return isOther = true }
+    isPosition.toggle()
   }
   
   @objc private func settingDidTap(_ sender: UIButton) {
-    NetworkService.getSettingRequestData { [weak self] result in
-      switch result {
-      case .success(let data):
-        
-        self!.settingVC.requestIncidentDatas = data
-        self!.selectedViewController = self?.vcSetting
-      case .failure(let err):
-        print(err.localizedDescription)
-      }
-    }
-    
+    isOther = false
+    self.selectedViewController = self.vcSetting
   }
   
   private struct Standard {

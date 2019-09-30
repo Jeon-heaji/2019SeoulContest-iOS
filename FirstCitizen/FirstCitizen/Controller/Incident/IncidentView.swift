@@ -84,7 +84,7 @@ class IncidentView: UIView {
     }
     
     backButton.snp.makeConstraints {
-      $0.top.equalTo(self.safeAreaLayoutGuide.snp.top).offset(margin.dynamic(4))
+      $0.top.equalTo(self.safeAreaLayoutGuide.snp.top)
       $0.leading.equalTo(self.safeAreaLayoutGuide.snp.leading).offset(margin.dynamic(1))
       $0.width.height.equalTo(margin.dynamic(3) + 5)
     }
@@ -143,15 +143,17 @@ extension IncidentView: UITableViewDataSource {
       let cell = tableView.dequeueReusableCell(withIdentifier: OccurredTimeCell.identifier, for: indexPath) as! OccurredTimeCell
       if category == "똥휴지" {
         cell.isHidden = true
+      } else {
+        cell.modifyProperties(detailIncidentData!.occurredAt!)
       }
-      cell.modifyProperties(detailIncidentData!.occurredAt!)
       return cell
     } else if indexPath.row == 4 {
       let cell = tableView.dequeueReusableCell(withIdentifier: AttatchedFileCell.identifier, for: indexPath) as! AttatchedFileCell
       if category == "똥휴지" {
         cell.isHidden = true
+      } else {
+        cell.modifyProperties(imagesStr: detailIncidentData!.images)
       }
-      cell.modifyProperties(imagesStr: detailIncidentData!.images)
       return cell
     } else {
       let cell = tableView.dequeueReusableCell(withIdentifier: ContentsCell.identifier, for: indexPath) as! ContentsCell

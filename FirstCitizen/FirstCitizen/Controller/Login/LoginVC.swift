@@ -39,7 +39,8 @@ class LoginVC: UIViewController {
   }
   
   @objc func back() {
-    presentingViewController?.dismiss(animated: true)
+//    presentingViewController?.dismiss(animated: true)
+    self.dismiss(animated: true)
   }
   
   private func configure() {
@@ -96,6 +97,9 @@ class LoginVC: UIViewController {
       return
     }
     
+    emailView.textField.resignFirstResponder()
+    passwordView.textField.resignFirstResponder()
+    
     let url = URL(string: "http://eb-seoulcontest-deploy-master.ap-northeast-2.elasticbeanstalk.com/account/get_token/")!
     
     var request = URLRequest(url: url)
@@ -122,10 +126,23 @@ class LoginVC: UIViewController {
         if (200..<300) ~= response.statusCode {
           // 성공시
           DispatchQueue.main.async {
-            let token = data!.reduce("", {$0 + String(format: "%02X", $1)})
-            print(token)
-            UserDefaults.standard.set(token, forKey: "Token")
-            self.navigationController?.popViewController(animated: true)
+            guard let data = data,
+              let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+              else { return print("No Data") }
+            
+            guard let token = jsonObject["token"] as? String,
+                  let userID = jsonObject["user_id"] as? Int
+              else { return print("Parsing Error") }
+            
+            UserDefaults.standard.set("Token " + token, forKey: "Token")
+            UserDefaults.standard.set(userID, forKey: "userID")
+            print("토큰 :", token)
+            UserDefaults.standard.set("Token " + token, forKey: "Token")
+            guard let ud = UserDefaults.standard.object(forKey: "Token") else { return }
+            print("UserDefaults :", ud)
+            
+            self.getUserInfo()
+//            self.navigationController?.popViewController(animated: true)
           }
           
         } else if (400..<500) ~= response.statusCode {
@@ -142,6 +159,30 @@ class LoginVC: UIViewController {
         }
       }
     }.resume()
+    
+    
+  }
+  
+  private func getUserInfo() {
+    NetworkService.getUserInfo { result in
+      switch result {
+      case .success(let data):
+        guard let presentedVC = self.presentingViewController as? MainTabBarController else { return }
+        guard let naviVC = presentedVC.viewControllers?[3] as? UINavigationController else { return }
+        guard let vc = naviVC.viewControllers[0] as? SettingViewController else { return }
+        
+        let userShared = UserInfoManager.shared
+        userShared.userInfo = data
+
+        DispatchQueue.main.async {
+          vc.isSign = false
+          vc.tableView.reloadData()
+          self.dismiss(animated: true)
+        }
+      case .failure(let err):
+        print(err.localizedDescription)
+      }
+    }
   }
   
   @objc private func signupAction() {

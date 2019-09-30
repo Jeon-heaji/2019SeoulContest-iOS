@@ -18,16 +18,29 @@ class RestroomCreateViewController: UIViewController {
   
   private let tableView = UITableView()
   
+  var fromMap = true
+  
+  var cell0 = UITableViewCell()
+  var cell1 = UITableViewCell()
+  var cell2 = RequestCreateAddressCell()
+  var cell3 = RequestCreateAddressCell()
+  var cell4 = UITableViewCell()
+  var cell5 = RequestCreateTextAddCell()
+  var cell6 = UITableViewCell()
+  var cell7 = RequestCreateTextAddCell()
+  
   var mainAdd = ""
   var detailAdd = ""
   var shortAdd = "현재 위치"
   var location = NMGLatLng()
   
+  var category = 1
+  
   var root: CreateRoot?
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    
+    print("category in restroom", category)
     navigationSet()
     configure()
     autoLayout()
@@ -61,11 +74,11 @@ class RestroomCreateViewController: UIViewController {
   
   @objc private func barButtonAction() {
     // 의뢰 하는 버튼 카테고리 꼭 바꿔야함 동적으로
-    let titleCell = tableView.cellForRow(at: IndexPath(row: 5, section: 0)) as? RequestCreateTextAddCell
-    let title = titleCell?.textField.text ?? "오류"
+    let titleCell = cell5
+    let title = titleCell.textField.text ?? "오류"
     
-    let contentCell = tableView.cellForRow(at: IndexPath(row: 7, section: 0)) as? RequestCreateTextAddCell
-    let content = contentCell?.textView.text ?? "오류"
+    let contentCell = cell7
+    let content = contentCell.textView.text ?? "오류"
     
     let lat = location.lat
     let lng = location.lng
@@ -75,9 +88,9 @@ class RestroomCreateViewController: UIViewController {
     timeFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
     let time = timeFormatter.string(from: Date())
     
-    print("time: ", time)
+    print("category: ", category)
     
-    let requestData = RequestData(category: 1,
+    let requestData = RequestData(category: category,
                                   police: 0,
                                   title: title,
                                   content: content,
@@ -88,11 +101,15 @@ class RestroomCreateViewController: UIViewController {
                                   lng: lng,
                                   time: time)
     
-    print(requestData)
-    
     NetworkService.createRequest(data: requestData) {
       if $0 {
-        self.dismiss(animated: true)
+        DispatchQueue.main.async {
+          if self.fromMap {
+            self.dismiss(animated: true)
+          } else {
+            self.navigationController?.popViewController(animated: true)
+          }
+        }
       }
       print($0)
     }
@@ -133,7 +150,7 @@ extension RestroomCreateViewController: UITableViewDataSource {
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     switch indexPath.row {
     case 0:
-      let cell = UITableViewCell()
+      let cell = cell0
       
       cell.selectionStyle = .none
       cell.textLabel?.text = " 위치 입력"
@@ -142,7 +159,7 @@ extension RestroomCreateViewController: UITableViewDataSource {
       return cell
       
     case 1:
-      let cell = UITableViewCell()
+      let cell = cell1
       
       cell.selectionStyle = .none
       cell.textLabel?.text = "\(shortAdd) \(detailAdd)"
@@ -152,21 +169,21 @@ extension RestroomCreateViewController: UITableViewDataSource {
       return cell
       
     case 2:
-      let cell = RequestCreateAddressCell()
+      let cell = cell2
       
       cell.setting(type: .map)
       
       return cell
       
     case 3:
-      let cell = RequestCreateAddressCell()
+      let cell = cell3
       
       cell.setting(type: .text)
       
       return cell
       
     case 4:
-      let cell = UITableViewCell()
+      let cell = cell4
       
       cell.selectionStyle = .none
       cell.textLabel?.text = " 제목"
@@ -175,7 +192,7 @@ extension RestroomCreateViewController: UITableViewDataSource {
       return cell
       
     case 5:
-      let cell = RequestCreateTextAddCell()
+      let cell = cell5
       
       cell.setting(type: .field)
       cell.textField.delegate = self
@@ -183,7 +200,7 @@ extension RestroomCreateViewController: UITableViewDataSource {
       return cell
       
     case 6:
-      let cell = UITableViewCell()
+      let cell = cell6
       
       cell.selectionStyle = .none
       cell.textLabel?.text = " 내용"
@@ -192,7 +209,7 @@ extension RestroomCreateViewController: UITableViewDataSource {
       return cell
       
     case 7:
-      let cell = RequestCreateTextAddCell()
+      let cell = cell7
       
       cell.setting(type: .view)
       
@@ -222,7 +239,6 @@ extension RestroomCreateViewController: UITableViewDelegate {
       
       // did tap address
     case 3:
-      ()
       let vc = LocationWithAddVC()
       navigationController?.pushViewController(vc, animated: true)
 

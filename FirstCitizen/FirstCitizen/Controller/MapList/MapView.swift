@@ -23,6 +23,7 @@ class MapView: UIView {
   
   // MARK:- Properties
   weak var delegate: MapViewDelegate?
+  var isFirst: Bool = true
   var currentCoordinateValue: CLLocationCoordinate2D?
   
   let nMapLocationManager = NMFLocationManager()
@@ -35,6 +36,9 @@ class MapView: UIView {
   private let gradientView = UIImageView()
   
   let previewContainer = UIView()
+  
+  var firstExplainLabel = UILabel()
+  
   private let imageView = UIImageView()
   private let titleLabel = UILabel()
   private let guideLabel = UILabel()
@@ -55,20 +59,32 @@ class MapView: UIView {
     autoLayout()
     mapSetting()
     nMapConfigure()
+    
+    previewContainer.isHidden = true
   }
   
   override func layoutSubviews() {
     super.layoutSubviews()
     
+    firstAttribute()
     attribute()
+    
   }
   
   // MARK:- Methods
-  func changePreviewContainer(_ homeIncidentData: IncidentData, _ iconUrlStr: String) {
+  func changePreviewContainer(_ homeIncidentData: IncidentData, _ iconImg: UIImage) {
     titleLabel.text = homeIncidentData.title
-    let iconURL: URL = URL(string: iconUrlStr)!
-    imageView.kf.setImage(with: iconURL)
-    dateLabel.text = homeIncidentData.createdAt
+    imageView.image = iconImg
+    
+    guard let createdTime = homeIncidentData.createdAt else { return }
+    let date = Date()
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+    let time = date.convertDateFormatter(date: createdTime)
+    let dateTime = dateFormatter.date(from: time)
+    let daysBetweenDate = date.daysBetweenDate(toDate: dateTime!)
+    dateLabel.text = daysBetweenDate
+    
     contentsLabel.text = homeIncidentData.content
     pointLabel.text = "Point \(homeIncidentData.categoryScore) + Bonus \(homeIncidentData.score)"
     let attributedStr = NSMutableAttributedString(string: pointLabel.text!)
@@ -124,7 +140,13 @@ class MapView: UIView {
     registerButton.shadow()
   }
   
-  private func attribute() {
+  private func firstAttribute() {
+    firstExplainLabel.text = "곤경에 빠진 시민을 도와주세요"
+    firstExplainLabel.textAlignment = .center
+    firstExplainLabel.dynamicFont(fontSize: 24, weight: .bold)
+  }
+  
+  func attribute() {
     gradientView.image = UIImage(named: "Gradient")
     gradientView.contentMode = .scaleToFill
     
@@ -209,8 +231,13 @@ class MapView: UIView {
     [nMapView, gradientView, locationButton, refreshButton, registerButton, previewContainer]
       .forEach { self.addSubview($0) }
     
+    [firstExplainLabel]
+      .forEach { self.addSubview($0) }
+    
     [titleLabel, imageView, guideLabel, dateLabel, pointLabel, contentsLabel, progressLabel]
       .forEach { previewContainer.addSubview($0) }
+    
+    
     
     nMapView.snp.makeConstraints {
       $0.top.leading.trailing.equalTo(self)
@@ -245,6 +272,10 @@ class MapView: UIView {
       $0.top.equalTo(gradientView.snp.bottom).offset(-margin.dynamic(1))
       $0.leading.equalTo(self).offset(margin.dynamic(1))
       $0.trailing.bottom.equalTo(self).offset(-margin.dynamic(1))
+    }
+  
+    firstExplainLabel.snp.makeConstraints {
+      $0.top.leading.trailing.bottom.equalTo(previewContainer)
     }
     
     titleLabel.snp.makeConstraints {

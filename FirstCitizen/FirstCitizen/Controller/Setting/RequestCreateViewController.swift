@@ -7,10 +7,40 @@
 //
 
 import UIKit
+import NMapsMap
+import TLPhotoPicker
 
 class RequestCreateViewController: UIViewController {
   
   private let tableView = UITableView()
+  
+  var fromMap = true
+  
+  var cell1 = RequestCreatePoliceStationCell()
+  var cell7 = RequestCreateTextAddCell()
+  var cell9 = RequestCreateTextAddCell()
+  var cell10 = ImagePickerCell()
+
+  var mainAdd = ""
+  var detailAdd = ""
+  var shortAdd = "현재 위치"
+  var location = NMGLatLng()
+  
+  var category = 1
+  
+  var police = 0
+  
+  var imageArr = [UIImage]()
+  
+  var selectedAssets = [TLPHAsset]() {
+    willSet(new) {
+      imageArr = []
+      new.forEach {
+        imageArr.append($0.fullResolutionImage ?? UIImage())
+      }
+      cell10.imageArr = imageArr
+    }
+  }
   
   private let policeStation = [
     "없음",
@@ -54,7 +84,7 @@ class RequestCreateViewController: UIViewController {
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    
+    print("category in create", category)
     navigationSet()
     configure()
     autoLayout()
@@ -85,6 +115,56 @@ class RequestCreateViewController: UIViewController {
   }
   
   @objc private func barButtonAction() {
+    print("didTapbarbtn")
+    
+    let titleCell = cell7
+    let title = titleCell.textField.text ?? "오류"
+    
+    let contentCell = cell9
+    let content = contentCell.textView.text ?? "오류"
+    
+    let lat = location.lat
+    let lng = location.lng
+    
+    let timeFormatter = DateFormatter()
+    timeFormatter.locale = Locale(identifier: "ko")
+    timeFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+    let time = timeFormatter.string(from: Date())
+    
+    print("category: ", category)
+    
+    let requestData = RequestData(category: category,
+                                  police: police,
+                                  title: title,
+                                  content: content,
+                                  score: 50,
+                                  mainAdd: mainAdd,
+                                  detailAdd: detailAdd,
+                                  lat: lat,
+                                  lng: lng,
+                                  time: time)
+    
+    print(requestData)
+    
+    NetworkService.createRequestWithImage(data: requestData, images: imageArr) {
+      if $0 {
+        DispatchQueue.main.async {
+          if self.fromMap {
+            self.dismiss(animated: true)
+          } else {
+            self.navigationController?.popViewController(animated: true)
+          }
+        }
+      }
+      print($0)
+    }
+    
+//    NetworkService.createRequest(data: requestData) {
+//      if $0 {
+//        self.dismiss(animated: true)
+//      }
+//      print($0)
+//    }
     
   }
   
@@ -92,6 +172,7 @@ class RequestCreateViewController: UIViewController {
     view.backgroundColor = .white
     
     tableView.dataSource = self
+    tableView.delegate = self
     tableView.separatorStyle = .none
     view.addSubview(tableView)
     
@@ -115,7 +196,7 @@ class RequestCreateViewController: UIViewController {
 
 extension RequestCreateViewController: UITableViewDataSource {
   func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    return 10
+    return 11
   }
   
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -130,8 +211,9 @@ extension RequestCreateViewController: UITableViewDataSource {
       return cell
       
     case 1:
-      let cell = RequestCreatePoliceStationCell()
+      let cell = cell1
       
+//      cell.picker.selectRow(police, inComponent: police, animated: true)
       cell.picker.dataSource = self
       cell.picker.delegate = self
       
@@ -150,7 +232,7 @@ extension RequestCreateViewController: UITableViewDataSource {
       let cell = UITableViewCell()
       
       cell.selectionStyle = .none
-      cell.textLabel?.text = "현재위치"
+      cell.textLabel?.text = "\(shortAdd) \(detailAdd)"
       cell.textLabel?.textAlignment = .center
       cell.textLabel?.upsFontHeavy(ofSize: 15)
       
@@ -180,7 +262,7 @@ extension RequestCreateViewController: UITableViewDataSource {
       return cell
       
     case 7:
-      let cell = RequestCreateTextAddCell()
+      let cell = cell7
       
       cell.setting(type: .field)
       cell.textField.delegate = self
@@ -197,12 +279,17 @@ extension RequestCreateViewController: UITableViewDataSource {
       return cell
       
     case 9:
-      let cell = RequestCreateTextAddCell()
+      let cell = cell9
       
       cell.setting(type: .view)
       
       return cell
       
+    case 10:
+      let cell = cell10
+      cell.delegate = self
+//      cell.imageArr = self.imageArr
+      return cell
     default:
       return UITableViewCell()
     }
@@ -229,5 +316,65 @@ extension RequestCreateViewController: UIPickerViewDataSource {
 extension RequestCreateViewController: UIPickerViewDelegate {
   func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
     return policeStation[row]
+  }
+  
+  func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+    print("police: ", row)
+    police = row
+  }
+}
+
+extension RequestCreateViewController: UITableViewDelegate {
+  func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    switch indexPath.row {
+      // did tap map
+    case 4:
+      let vc = LocationWithMap()
+      vc.delegate = self
+      navigationController?.pushViewController(vc, animated: true)
+      
+      // did tap address
+    case 5:
+      let vc = LocationWithAddVC()
+      navigationController?.pushViewController(vc, animated: true)
+      
+      
+    default:
+      break
+    }
+  }
+  
+}
+
+extension RequestCreateViewController: LocationWithMapDelegate {
+  func sendAddress(main: String, detail: String, short: String, location: NMGLatLng) {
+    self.mainAdd = main
+    self.detailAdd = detail
+    self.shortAdd = short
+    self.location = location
+    self.tableView.reloadData()
+  }
+  
+  
+}
+
+extension RequestCreateViewController: ImagePickerCellDelegate {
+  func didTapImageAddBtn() {
+    print("didTapImageAddBtn")
+    let picker = TLPhotosPickerViewController()
+    picker.delegate = self
+    self.present(picker, animated: true)
+  }
+  
+  func tableviewReload() {
+    self.tableView.reloadData()
+  }
+  
+   
+}
+
+extension RequestCreateViewController: TLPhotosPickerViewControllerDelegate {
+  func dismissPhotoPicker(withTLPHAssets: [TLPHAsset]) {
+    self.selectedAssets = withTLPHAssets
   }
 }

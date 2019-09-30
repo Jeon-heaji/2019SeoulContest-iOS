@@ -47,21 +47,26 @@ class PointCardCell: UITableViewCell {
     
   }
   
+  func cellModify(point: Int, nickname: String) {
+    pointLabel.text = "\(point)"
+    subLabel.text = nickname
+  }
+  
   private func configure() {
     self.selectionStyle = .none
     
     cardView.layer.cornerRadius = 16
     cardView.layer.masksToBounds = true
     
-    titleLabel.text = "업's"
+    titleLabel.text = "First Citizen"
     titleLabel.textColor = .white
     titleLabel.upsFontHeavy(ofSize: 25)
     
-    pointLabel.text = "1750"
+    pointLabel.text = "1200"
     pointLabel.textColor = #colorLiteral(red: 0.9764705896, green: 0.850980401, blue: 0.5490196347, alpha: 1)
     pointLabel.upsFontHeavy(ofSize: 30)
     
-    subLabel.text = "kira1021@gmail.com"
+    subLabel.text = "dldbdjq@gmail.com"
     subLabel.textColor = #colorLiteral(red: 0.8039215803, green: 0.8039215803, blue: 0.8039215803, alpha: 1)
   }
   

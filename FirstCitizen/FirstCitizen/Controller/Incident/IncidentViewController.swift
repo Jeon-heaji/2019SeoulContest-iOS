@@ -37,12 +37,9 @@ class IncidentViewController: UIViewController {
   
   private func layout() {
     self.view.addSubview(incidentView)
-    
-    let safeAreaTopInset = self.view.safeAreaInsets.top
-    
+
     incidentView.snp.makeConstraints {
-      $0.top.equalToSuperview().offset(-safeAreaTopInset)
-      $0.leading.trailing.bottom.equalToSuperview()
+      $0.top.leading.trailing.bottom.equalToSuperview()
     }
   }
 }
@@ -53,10 +50,12 @@ extension IncidentViewController: IncidentViewDelegate {
       UIAlertController.restroomShow(
         title: "알림",
         message: "10분 이내 도움이 가능하신 경우 돕기 버튼을 선택해주시기 바랍니다.",
+        requsetID: detailIncidentData?.id ?? 0,
         from: self
       )
     } else {
       let reportVC = ReportViewController()
+      reportVC.detailIncidentData = detailIncidentData
       self.present(reportVC, animated: true, completion: nil)
     }
   }
